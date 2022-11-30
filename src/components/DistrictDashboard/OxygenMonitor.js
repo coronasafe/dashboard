@@ -6,6 +6,7 @@ import useSWR from "swr";
 
 import { careSummary } from "../../utils/api";
 import {
+  OXYGEN_TYPES,
   OXYGEN_INVENTORY,
   OXYGEN_INVENTORY_NAME,
   OXYGEN_CAPACITY_TRANSLATION,
@@ -23,6 +24,8 @@ import { CSVLink } from "react-csv";
 import Pagination from "../Pagination";
 import { Button, Input } from "@windmill/react-ui";
 import fuzzysort from "fuzzysort";
+
+import SortByWidget from "../SortByWidget/SortByWidget";
 
 dayjs.extend(relativeTime);
 dayjs.extend(customParseFormat);
@@ -231,36 +234,12 @@ const oxygenSelector = (selector) => {
   }
 };
 
-const selectorToText = (selector) => {
-  switch (selector) {
-    case "inventoryModifiedDate":
-      return "last updated date";
-    case "tte_tank":
-      return "liquid oxygen time to empty";
-    case "tte_b_cylinders":
-      return "B type cylinder time to empty";
-    case "tte_c_cylinders":
-      return "C type cylinder time to empty";
-    case "tte_d_cylinders":
-      return "D type cylinder time to empty";
-    default:
-      return null;
-  }
-};
-
 function OxygenMonitor({ filterDistrict, filterFacilityTypes, date }) {
   const [orderBy, setOrderBy] = useState({
-    selector: "inventoryModifiedDate",
+    selector: oxygenSelector("Last Updated"),
     order: 1,
   });
-  const setOrderByHandler = (selector) => {
-    const orderBySelector = oxygenSelector(selector);
-    setOrderBy(
-      orderBySelector
-        ? { selector: orderBySelector, order: -(orderBy?.order || 1) }
-        : undefined
-    );
-  };
+
   const { data } = useSWR(
     ["OxygenMonitor", date, filterDistrict.id],
     (url, date, district) =>
@@ -439,25 +418,15 @@ function OxygenMonitor({ filterDistrict, filterFacilityTypes, date }) {
         )}
       </div>
 
-      {/* Commented for now... to be added as a seperate component*/}
-      {/* {orderBy && (
-        <div className="flex items-center mt-4 space-x-2">
-          <div className="dark:text-white text-xs">
-            Showing Results Filtered by: {selectorToText(orderBy.selector)}{" "}
-            {orderBy.order === 1 ? "ASC" : "DESC"}
-          </div>
-          <div
-            onClick={(_) => setOrderBy()}
-            className="focus:shadow-outline-primary inline-flex items-center justify-center px-2 text-white text-xs leading-5 bg-primary-500 active:bg-primary-500 hover:bg-primary-600 border border-transparent rounded-lg focus:outline-none cursor-pointer transition-colors duration-150"
-          >
-            X Clear Filter
-          </div>
-        </div>
-      )} */}
-
       <div id="facility-oxygen-cards" className="mb-16 mt-16">
+        <SectionTitle>Facilities</SectionTitle>
         <div className="flex flex-col items-center justify-between md:flex-row">
-          <SectionTitle>Facilities</SectionTitle>
+          <SortByWidget
+            orderBy={orderBy}
+            setOrderBy={(state) => setOrderBy(state)}
+            selectors={["Last Updated", ...Object.values(OXYGEN_TYPES)]}
+            selectorMapping={oxygenSelector}
+          />
           <div className="flex max-w-full space-x-4">
             {exported && (
               <CSVLink data={exported.data} filename={exported.filename}>
